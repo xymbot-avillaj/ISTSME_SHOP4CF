@@ -1,8 +1,0 @@
-{
-        "id": "urn:ngsi-ld:Press:001",
-        "type": "Machine",
-        "tag": {
-            "type": "Text",
-            "value": "E000000000000000001"
-        }
-}
