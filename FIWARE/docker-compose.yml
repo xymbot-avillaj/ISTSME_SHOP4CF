@@ -31,134 +31,20 @@ services:
         aliases:
           - orion
     ports:
-      - 1026:1026 # localhost:1026
+      - "1026:1026" # localhost:1026
     command: -corsOrigin __ALL -dbhost mongo-db -logLevel DEBUG -forwarding
     healthcheck:
-      test: curl --fail -s http://orion:1026/version || exit 1
+      test: curl --fail -s http://orion:${ORION_LD_PORT}/version || exit 1
       interval: 5s
-
-#Container in charge of executing the script to initialize the timescale database.
-#Link to the script:  https://github.com/orchestracities/ngsi-timeseries-api/blob/master/timescale-container/quantumleap-db-setup.py
-  quantumleap-db-setup:
-    image: orchestracities/quantumleap-pg-init
-    container_name: quantumleap-db-setup
-    depends_on:
-      - timescale
-    networks:
-      - default
-    environment:
-      - QL_DB_PASS=*
-      - QL_DB_INIT_DIR=/ql-db-init
-      - PG_HOST=timescale
-      - PG_PASS=* 
-
-#QuantumLeap is the service that allows you to index the data provided by Orion.
-  quantumleap:
-    image: orchestracities/quantumleap
-    container_name: quantumleap
-    depends_on:
-#     - crate
-      - timescale
-      - redis
-    networks:
-      - default
-    ports:
-      - "8668:8668"
-    environment:
-      - QL_DEFAULT_DB=timescale
-      - POSTGRES_HOST=timescale
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB_NAME=quantumleap
-      - POSTGRES_DB_USER=quantumleap
-      - POSTGRES_DB_PASS=*
-      - POSTGRES_USE_SSL=False
-#     - CRATE_HOST=crate
-      - USE_GEOCODING=False
-      - CACHE_QUERIES=True
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - LOGLEVEL=ERROR
-
-#Timescale is a Postgre database for storing time series information.
-  timescale:
-    image: timescale/timescaledb-postgis:1.7.5-pg12
-    container_name: postgre-timescale
-    ports:
-      - "5432:5432"
-    networks:
-      - default
-    environment:
-      - POSTGRES_PASSWORD=*
-    volumes:
-      - timescale:/data
-
-#Pgadmin is a graphical interface to access the Timescale database. To connect to the database the following data must be specified:
-#Hostname /address: timescale (or the name of the service assigned to timescale).
-#Port: 5432
-#Username: quantumleap
-#Password: *
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: pgadmin  
-    restart: unless-stopped  
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin-csic.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "8200:80"
-    networks:
-      - default
-    depends_on:
-      - timescale
-    volumes:
-       - pgadmin:/var/lib/pgadmin
-
-
-#Redis is a database used by QuantumLeap to store the cache (I am not entirely sure about this, corroborate information in the future).
-  redis:
-    image: redis:6.2.3
-    container_name: redis
-    ports:
-      - "6379:6379"
-    networks:
-      - default
-
-#Grafana is a dashboard for visualization, it allows us to visualize information from the Timescale database. (In the future this service will be replaced by a proprietary dashboard).
-  grafana:
-    image: grafana/grafana:7.5.5
-    container_name: grafana
-    depends_on:
-      - timescale
-    ports:
-      - "3003:3000"
-    environment:
-      - GF_INSTALL_PLUGINS=https://github.com/orchestracities/grafana-map-plugin/archive/master.zip;grafana-map-plugin,grafana-clock-panel,grafana-worldmap-panel
-    volumes:
-      - grafana:/var/lib/grafana
-
-
-#Crate can be used when we want to have two backends, the QuantumLeap file where this is indicated is "ql-config" (look for information in case you want to have two backends).
-
-#  crate:
-#    image: crate:4.5.1
-#    command: crate -Cauth.host_based.enabled=false
-#      -Ccluster.name=democluster -Chttp.cors.enabled=true -Chttp.cors.allow-origin="*"
-#    ports:
-#      - "4200:4200"
-#      - "4300:4300"
-#    networks:
-#      - default
-
-#This database is used by Orion to store historical data. It does not work if there is no Mongo database, as it is part of the Orion service operation.
 
   mongo-db:
     image: mongo:4.4
     hostname: mongo-db
     container_name: db-mongo2
     expose:
-      - 27017
+      - "27017"
     ports:
-      - 27017:27017 # localhost:27017
+      - "27017:27017" # localhost:27017
     networks:
       - default
     volumes:
